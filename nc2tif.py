@@ -1,16 +1,3 @@
-"""
-my environments:
-    python 3.8.5
-    modules:
-        netCDF4 1.5.4
-        xarray 0.16.1
-        numpy 1.19.1
-        Gdal 3.1.3
-×¢ÒâÊÂÏî£º
-	1¡¢ÎÄ¼şÂ·¾¶×îºÃ²»ÒªÓĞÖĞÎÄÂ·¾¶
-	2¡¢Êä³öÎÄ¼ş¼ĞËæÒâ
-        	3. ÊäÈëÎÄ¼ş¼ĞÖ»ÄÜ´æ·Å.ncÎÄ¼ş£¬²»ÒªÓĞÆäËûÎÄ¼ş
-"""
 from osgeo import gdal, osr, gdal_array
 import xarray as xr
 import numpy as np
@@ -20,7 +7,7 @@ from netCDF4 import num2date
 import os
 def GetValueBynetCDF4(in_filename):
     '''
-    Í¨¹ınetCDF4´ò¿ª.ncÎÄ¼ş
+    é€šè¿‡netCDF4æ‰“å¼€.ncæ–‡ä»¶
     Open the .nc file through netCDF4
     '''
     nc_data = nc.Dataset(in_filename)
@@ -28,7 +15,7 @@ def GetValueBynetCDF4(in_filename):
 
 def get_time(index,nc_data,var,filename):
     '''
-    »ñÈ¡Ê±¼ä±êÇ©Öµ
+    è·å–æ—¶é—´æ ‡ç­¾å€¼
     Get the time label value
     '''
     time = nc_data.variables['time'][:]
@@ -49,26 +36,26 @@ def GetnetCDF4InfobyName(in_filename,var_name):
         sys.exit()
 
     if len(src_ds.GetSubDatasets()) > 1:
-        #Èç¹û´æÔÚ¶à¸ö±äÁ¿
+        #å¦‚æœå­˜åœ¨å¤šä¸ªå˜é‡
         subdataset = 'NETCDF:"' + in_filename +'":' + var_name
         src_ds_sd = gdal.Open(subdataset)
         #warnings.filterwarnings('ignore')
-        #¶ÁÈ¡±äÁ¿
+        #è¯»å–å˜é‡
         NDV = src_ds_sd.GetRasterBand(1).GetNoDataValue()
         xsize = src_ds_sd.RasterXSize
         ysize = src_ds_sd.RasterYSize
-        GeoT = src_ds_sd.GetGeoTransform()#·µ»ØµØÀí×ø±ê
+        GeoT = src_ds_sd.GetGeoTransform()#è¿”å›åœ°ç†åæ ‡
         Projection = osr.SpatialReference()
-        # »ñÈ¡µØÀí×ø±êÏµÍ³ĞÅÏ¢£¬ÓÃÓÚÑ¡È¡ĞèÒªµÄµØÀí×ø±êÏµÍ³
+        # è·å–åœ°ç†åæ ‡ç³»ç»Ÿä¿¡æ¯ï¼Œç”¨äºé€‰å–éœ€è¦çš„åœ°ç†åæ ‡ç³»ç»Ÿ
 
-        Projection.ImportFromEPSG(3857)  # ¶¨ÒåÊä³öµÄ×ø±êÏµÎª"WGS 84"£¬AUTHORITY["EPSG","4326"
+        Projection.ImportFromEPSG(3857)  # å®šä¹‰è¾“å‡ºçš„åæ ‡ç³»ä¸º"WGS 84"ï¼ŒAUTHORITY["EPSG","4326"
         #Projection.ImportFromWkt(src_ds_sd.GetProjectionRef())
 
-        #¹Ø±ÕÕû¸öÊı¾İ¼¯
+        #å…³é—­æ•´ä¸ªæ•°æ®é›†
         src_ds_sd = None
         src_ds = None
 
-        #ÓÃxrray¶ÁÈ¡Êı¾İ
+        #ç”¨xrrayè¯»å–æ•°æ®
         xr_ensemble = xr.open_dataset(in_filename)
         data = xr_ensemble[var_name]
         data = np.ma.masked_array(data,mask=data==NDV,fill_value=NDV)
@@ -79,7 +66,7 @@ def GetnetCDF4InfobyName(in_filename,var_name):
     #Create GeoTiff image
 def create_geotiff(suffix,Array,NDV,xsize,ysize,GeoT,Projection,nc_data,filename):
         '''
-        ´ÓÊı×éÖĞ´´½¨ĞÂµÄtiffÍ¼Ïñ
+        ä»æ•°ç»„ä¸­åˆ›å»ºæ–°çš„tiffå›¾åƒ
         Create a new tiff image from the array
         '''
         DataType = gdal_array.NumericTypeCodeToGDALTypeCode(Array.dtype) ###
@@ -102,17 +89,17 @@ def create_geotiff(suffix,Array,NDV,xsize,ysize,GeoT,Projection,nc_data,filename
         if Array_shape_length == 3:
             for i,image in enumerate(Array,1):
                 now_file = get_time(i - 1,nc_data,var_name,filename)
-                # NewFileName = outpath + var_name + netCDF4ÎÄ¼ş + 1999_12_31 + .tif
+                # NewFileName = outpath + var_name + netCDF4æ–‡ä»¶ + 1999_12_31 + .tif
                 NewFileName = suffix + '\\' + now_file + '.tif'
                 print('Outpath:',NewFileName,'\n')
                 DataSet = driver.Create(NewFileName, xsize, ysize, 1, DataType)
                 DataSet.SetGeoTransform(GeoT)
                 DataSet.SetProjection(Projection.ExportToWkt())
-                #ÅĞ¶ÁÊı¾İµÄÎ¬¶È
+                #åˆ¤è¯»æ•°æ®çš„ç»´åº¦
                 #if Array_shape_length == 3:
                 DataSet.GetRasterBand(1).WriteArray(image)
                 #else:
-                # Êı¾İÎªn*7*11µÄ¾ØÕó£¬´Ë´úÂëÈ¡µÄÎªµÚ0²ã£¬Ò»¹²n²ã
+                # æ•°æ®ä¸ºn*7*11çš„çŸ©é˜µï¼Œæ­¤ä»£ç å–çš„ä¸ºç¬¬0å±‚ï¼Œä¸€å…±nå±‚
                 #DataSet.GetRasterBand(1).WriteArray(image[0])
                 DataSet.GetRasterBand(1).SetNoDataValue(NDV)
                 DataSet.FlushCache()
@@ -121,14 +108,14 @@ def create_geotiff(suffix,Array,NDV,xsize,ysize,GeoT,Projection,nc_data,filename
         else:
             for i,image in enumerate(Array,1):
                 now_file = get_time(i - 1,nc_data,var_name,filename)
-                # NewFileName = outpath + var_name + netCDF4ÎÄ¼ş + 1999_12_31 + .tif
+                # NewFileName = outpath + var_name + netCDF4æ–‡ä»¶ + 1999_12_31 + .tif
                 NewFileName = suffix + '\\' + now_file + '.tif'
                 print('Outpath:',NewFileName,'\n')
                 DataSet = driver.Create(NewFileName, xsize, ysize, 1, DataType)
                 DataSet.SetGeoTransform(GeoT)
                 DataSet.SetProjection(Projection.ExportToWkt())
-                #ÅĞ¶ÁÊı¾İµÄÎ¬¶È
-                #Êı¾İÎªn*7*11µÄ¾ØÕó£¬´Ë´úÂëÈ¡µÄÎªµÚ0²ã£¬Ò»¹²n²ã
+                #åˆ¤è¯»æ•°æ®çš„ç»´åº¦
+                #æ•°æ®ä¸ºn*7*11çš„çŸ©é˜µï¼Œæ­¤ä»£ç å–çš„ä¸ºç¬¬0å±‚ï¼Œä¸€å…±nå±‚
                 DataSet.GetRasterBand(1).WriteArray(image[0])
                 DataSet.GetRasterBand(1).SetNoDataValue(NDV)
                 DataSet.FlushCache()
@@ -137,10 +124,10 @@ def create_geotiff(suffix,Array,NDV,xsize,ysize,GeoT,Projection,nc_data,filename
 
 def GetOutPath(output_nc,filename,var):
     '''
-    ´´½¨Êä³öÎÄ¼ş¼Ğ
+    åˆ›å»ºè¾“å‡ºæ–‡ä»¶å¤¹
     Create output folder
     '''
-    path = output_nc + '\\' + filename[:-14] + '_' + var  # ´´½¨Êä³öÎÄ¼ş¼Ğ
+    path = output_nc + '\\' + filename[:-14] + '_' + var  # åˆ›å»ºè¾“å‡ºæ–‡ä»¶å¤¹
     try:
         os.makedirs(path)
     except:
@@ -148,16 +135,16 @@ def GetOutPath(output_nc,filename,var):
     return path
 
 if __name__ == '__main__':
-    #ÊäÈëÎÄ¼ş¼Ğ /Input folder
+    #è¾“å…¥æ–‡ä»¶å¤¹ /Input folder
     infile = r'C:\Users\Seven\Desktop\123'
-    #Êä³öÎÄ¼ş¼Ğ /Output folder
+    #è¾“å‡ºæ–‡ä»¶å¤¹ /Output folder
     output_nc = r"C:\Users\Seven\Desktop\1234"
     lista = os.listdir(infile)
     for k in range(0, len(lista)):
         filename = lista[k]
         strPth = infile + '\\' + filename
         dataset = GetValueBynetCDF4(strPth)
-        length = len(dataset.variables.keys())  # »ñÈ¡.ncÎÄ¼şµÄ±êÇ©
+        length = len(dataset.variables.keys())  # è·å–.ncæ–‡ä»¶çš„æ ‡ç­¾
         for i in range(4, length):
             var_name = str(list(dataset.variables.keys())[i])
             output_path = GetOutPath(output_nc,filename, var_name)
